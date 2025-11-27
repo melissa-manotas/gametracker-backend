@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const Juego = require('../models/Juego');
+const multer = require('multer');
+const path = require('path');
+
+// Configuración de multer para guardar imágenes en /uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage });
 
 // GET /api/juegos - Obtener todos los juegos
 router.get('/', async (req, res) => {
@@ -33,10 +46,21 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/juegos - Crear un nuevo juego
-router.post('/', async (req, res) => {
+// POST /api/juegos - Crear un nuevo juego con imagen
+router.post('/', upload.single('imagenPortada'), async (req, res) => {
   try {
-    const nuevoJuego = new Juego(req.body);
+    const { titulo, descripcion, genero, plataforma } = req.body;
+    let imagenPortada = '';
+    if (req.file) {
+      imagenPortada = `/uploads/${req.file.filename}`;
+    }
+    const nuevoJuego = new Juego({
+      titulo,
+      descripcion,
+      genero,
+      plataforma,
+      imagenPortada
+    });
     const juegoGuardado = await nuevoJuego.save();
     res.status(201).json(juegoGuardado);
   } catch (error) {

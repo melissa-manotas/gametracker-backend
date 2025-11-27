@@ -47,4 +47,4 @@ reseñaSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Reseña', reseñaSchema);
+module.exports = mongoose.model('Resena', reseñaSchema);

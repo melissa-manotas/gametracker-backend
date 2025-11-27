@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 require('dotenv').config();
+const path = require('path');
+const multer = require('multer');
 
 // Crear la aplicación Express
 const app = express();
@@ -10,13 +12,20 @@ const app = express();
 connectDB();
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Servir archivos estáticos de la carpeta uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rutas
 app.use('/api/juegos', require('./routes/juegos'));
-app.use('/api/reseñas', require('./routes/reseñas'));
+app.use('/api/resenas', require('./routes/resenas'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -25,7 +34,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       juegos: '/api/juegos',
-      reseñas: '/api/reseñas'
+      resenas: '/api/resenas'
     }
   });
 });

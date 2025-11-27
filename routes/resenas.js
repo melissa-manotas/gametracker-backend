@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const Reseña = require('../models/Reseña');
+const Resena = require('../models/Resena');
+const mongoose = require('mongoose');
+const Juego = require('../models/Juego');
 
-// GET /api/reseñas - Obtener todas las reseñas
+// GET /api/resenas - Obtener todas las reseñas
 router.get('/', async (req, res) => {
   try {
-    const reseñas = await Reseña.find()
+    const resenas = await Resena.find()
       .populate('juegoId', 'titulo imagenPortada')
       .sort({ fechaCreacion: -1 });
-    res.json(reseñas);
+    res.json(resenas);
   } catch (error) {
     res.status(500).json({ 
       mensaje: 'Error al obtener las reseñas', 
@@ -17,12 +19,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/reseñas/juego/:juegoId - Obtener reseñas de un juego específico
+// GET /api/resenas/juego/:juegoId - Obtener reseñas de un juego específico
 router.get('/juego/:juegoId', async (req, res) => {
   try {
-    const reseñas = await Reseña.find({ juegoId: req.params.juegoId })
+    const resenas = await Resena.find({ juegoId: req.params.juegoId })
       .sort({ fechaCreacion: -1 });
-    res.json(reseñas);
+    res.json(resenas);
   } catch (error) {
     res.status(500).json({ 
       mensaje: 'Error al obtener las reseñas del juego', 
@@ -31,17 +33,17 @@ router.get('/juego/:juegoId', async (req, res) => {
   }
 });
 
-// GET /api/reseñas/:id - Obtener una reseña por ID
+// GET /api/resenas/:id - Obtener una reseña por ID
 router.get('/:id', async (req, res) => {
   try {
-    const reseña = await Reseña.findById(req.params.id)
+    const resena = await Resena.findById(req.params.id)
       .populate('juegoId', 'titulo imagenPortada');
     
-    if (!reseña) {
+    if (!resena) {
       return res.status(404).json({ mensaje: 'Reseña no encontrada' });
     }
     
-    res.json(reseña);
+    res.json(resena);
   } catch (error) {
     res.status(500).json({ 
       mensaje: 'Error al obtener la reseña', 
@@ -50,12 +52,29 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/reseñas - Crear una nueva reseña
+// POST /api/resenas - Crear una nueva reseña
 router.post('/', async (req, res) => {
   try {
-    const nuevaReseña = new Reseña(req.body);
-    const reseñaGuardada = await nuevaReseña.save();
-    res.status(201).json(reseñaGuardada);
+    const { juegoId } = req.body;
+    
+    // Validar que el juegoId sea un ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(juegoId)) {
+      return res.status(400).json({ mensaje: 'ID de juego inválido' });
+    }
+    
+    // Validar que el juego exista
+    const juego = await Juego.findById(juegoId);
+    if (!juego) {
+      return res.status(404).json({ mensaje: 'Juego no encontrado' });
+    }
+    
+    const nuevaResena = new Resena({
+      ...req.body,
+      juegoId: mongoose.Types.ObjectId(juegoId)
+    });
+    const resenaGuardada = await nuevaResena.save();
+    await resenaGuardada.populate('juegoId', 'titulo imagenPortada');
+    res.status(201).json(resenaGuardada);
   } catch (error) {
     res.status(400).json({ 
       mensaje: 'Error al crear la reseña', 
@@ -64,20 +83,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/reseñas/:id - Actualizar una reseña
+// PUT /api/resenas/:id - Actualizar una reseña
 router.put('/:id', async (req, res) => {
   try {
-    const reseñaActualizada = await Reseña.findByIdAndUpdate(
+    const resenaActualizada = await Resena.findByIdAndUpdate(
       req.params.id,
       { ...req.body, fechaActualizacion: Date.now() },
       { new: true, runValidators: true }
     );
     
-    if (!reseñaActualizada) {
+    if (!resenaActualizada) {
       return res.status(404).json({ mensaje: 'Reseña no encontrada' });
     }
     
-    res.json(reseñaActualizada);
+    res.json(resenaActualizada);
   } catch (error) {
     res.status(400).json({ 
       mensaje: 'Error al actualizar la reseña', 
@@ -86,18 +105,18 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/reseñas/:id - Eliminar una reseña
+// DELETE /api/resenas/:id - Eliminar una reseña
 router.delete('/:id', async (req, res) => {
   try {
-    const reseñaEliminada = await Reseña.findByIdAndDelete(req.params.id);
+    const resenaEliminada = await Resena.findByIdAndDelete(req.params.id);
     
-    if (!reseñaEliminada) {
+    if (!resenaEliminada) {
       return res.status(404).json({ mensaje: 'Reseña no encontrada' });
     }
     
     res.json({ 
       mensaje: 'Reseña eliminada exitosamente', 
-      reseña: reseñaEliminada 
+      resena: resenaEliminada 
     });
   } catch (error) {
     res.status(500).json({ 
